@@ -3,10 +3,35 @@
 </script>
 
 <script>
+	import { onMount } from 'svelte'
+	import { loadIFramePromise, getIFrameCustomCSS } from './utils/iframeStyling'
+	let previewFrame, previewStyles
 	let paramStyles = ''
 
 	currQueryParams.forEach(param => {
-		paramStyles += `--${ param[0] }: #${ param[1] }; `
+		if (param[0].substr(0,2) === '--') {
+			paramStyles += `${ param[0] }: #${ param[1] }; `
+		}
+	})
+
+	onMount(async () => {
+		previewFrame.src = currQueryParams.find(item => item[0] === 'url')
+			? `${window.location.origin}/${ currQueryParams.find(item => item[0] === 'url')[1] }`
+			: ''
+
+		// WAIT FOR IFRAME TO LOAD
+		const previewFrameLoaded = await loadIFramePromise(previewFrame).catch(err => console.error(err))
+
+		// EXTRACT BODY, :ROOT, AND * CSS VARIABLES
+		previewStyles = getIFrameCustomCSS(previewFrame)
+		console.log('previewStyles = ', previewStyles)
+
+		// TODO: CREATE UI CONTROLS FOR EACH TOP LEVEL VARIABLE BASED ON TYPE
+
+		// TODO: WRITE TO URL AS QUERY PARAMS WHEN EDITING ANY CSS VARIABLE VALUES
+
+		// TODO: LOAD QUERY PARAMS AND ASSIGN TO IFRAME PAGE BY CREATING A NEW CSS FILE AND INSERTING AT END OF HEAD TAG
+
 	})
 </script>
 
@@ -24,6 +49,22 @@
 			{/each}
 		</tbody>
 	</table>
+	<section>
+		<h2>Theme Controls</h2>
+		{#if previewStyles instanceof Array}
+		{#each previewStyles as style, i}
+		<label>
+			{ style[0] }
+			<p>{ style[1] }</p>
+		</label>
+		{/each}
+		{/if}
+	</section>
+	{#if currQueryParams.find(item => item[0] === 'url')}
+	<iframe title='page-preview' bind:this={ previewFrame } width='80%' height='600' allowfullscreen>
+		<p>Sorry, your iframe isn't loading!</p>
+	</iframe>
+	{/if}
 </main>
 
 <style>
