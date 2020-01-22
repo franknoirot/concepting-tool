@@ -14,9 +14,20 @@
 		}
 	})
 
+	$: if (previewFrame && previewFrame.contentDocument && previewFrame.src && previewStyles) {
+		console.log('document =', previewFrame.contentDocument.documentElement.innerHTML)
+
+		previewFrame.contentDocument.documentElement.innerHTML = previewFrame.contentDocument.documentElement.innerHTML
+			.replace(/(<style id='injected'>.*<\/head>)|(<\/head>)/, `
+					<style id='injected'>
+						body { ${ previewStyles.map(style => style[0] +': '+ style[1]).join('; ') } }
+					</style>
+				</head>`)
+	}
+
 	onMount(async () => {
 		previewFrame.src = currQueryParams.find(item => item[0] === 'url')
-			? `${window.location.origin}/pages/${ currQueryParams.find(item => item[0] === 'url')[1] }`
+			? `./pages/${ currQueryParams.find(item => item[0] === 'url')[1] }`
 			: ''
 
 		// WAIT FOR IFRAME TO LOAD
@@ -51,9 +62,9 @@
 			</tbody>
 		</table>
 	</section>
-	<section>
+	{#if previewStyles instanceof Array}
+	<!-- <section>
 		<h2>Theme Controls Available on This Page</h2>
-		{#if previewStyles instanceof Array}
 		<table>
 			<tbody>
 				<tr><th>Variable</th><th>Value</th></tr>
@@ -65,8 +76,21 @@
 				{/each}
 			</tbody>
 		</table>
-		{/if}
+	</section> -->
+	<section>
+		{#each previewStyles as style, j ('style-control_'+j)}
+		<label>
+			{ style[0] }
+			<input type='color' on:change={(e) => {
+				const newStyles = previewStyles
+				previewStyles[j][1] = e.target.value 
+				previewStyles = newStyles
+			}} />
+			{ style[1] }
+		</label>
+		{/each}
 	</section>
+	{/if}
 	{#if currQueryParams.find(item => item[0] === 'url')}
 	<iframe title='page-preview' bind:this={ previewFrame } width='80%' height='600' allowfullscreen>
 		<p>Sorry, your iframe isn't loading!</p>
