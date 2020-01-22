@@ -16,7 +16,7 @@
 
 	onMount(async () => {
 		previewFrame.src = currQueryParams.find(item => item[0] === 'url')
-			? `${window.location.origin}/${ currQueryParams.find(item => item[0] === 'url')[1] }`
+			? `${window.location.origin}/pages/${ currQueryParams.find(item => item[0] === 'url')[1] }`
 			: ''
 
 		// WAIT FOR IFRAME TO LOAD
@@ -37,27 +37,34 @@
 
 <main style={ paramStyles }>
 	<h1>Query Param Test</h1>
-	<p>The URL params include the following:</p>
-	<table>
-		<tbody>
-			<tr><th>Key</th><th>Value</th></tr>
-			{#each currQueryParams as param, i}
-			<tr>
-				<td>{ param[0] }</td>
-				<td>{ param[1] }</td>
-			</tr>
-			{/each}
-		</tbody>
-	</table>
 	<section>
-		<h2>Theme Controls</h2>
+		<h2>URL params</h2>
+		<table>
+			<tbody>
+				<tr><th>Key</th><th>Value</th></tr>
+				{#each currQueryParams as param, i}
+				<tr>
+					<td>{ param[0] }</td>
+					<td>{ param[1] }</td>
+				</tr>
+				{/each}
+			</tbody>
+		</table>
+	</section>
+	<section>
+		<h2>Theme Controls Available on This Page</h2>
 		{#if previewStyles instanceof Array}
-		{#each previewStyles as style, i}
-		<label>
-			{ style[0] }
-			<p>{ style[1] }</p>
-		</label>
-		{/each}
+		<table>
+			<tbody>
+				<tr><th>Variable</th><th>Value</th></tr>
+				{#each previewStyles as style, i}
+				<tr>
+					<td>{ style[0] }</td>
+					<td>{ style[1] }</td>
+				</tr>
+				{/each}
+			</tbody>
+		</table>
 		{/if}
 	</section>
 	{#if currQueryParams.find(item => item[0] === 'url')}
@@ -87,6 +94,10 @@
 		text-transform: uppercase;
 		font-size: 4em;
 		font-weight: 100;
+	}
+
+	section {
+		margin: 2em 0;
 	}
 
 	table {
