@@ -1,31 +1,51 @@
 <script context='module'>
-	const currQueryParams = Array.from((new URL(document.location)).searchParams.entries())
+	let currQueryParams = Array.from((new URL(document.location)).searchParams.entries())
 </script>
 
 <script>
-	import { onMount } from 'svelte'
+	import { onMount, tick } from 'svelte'
 	import { loadIFramePromise, getIFrameCustomCSS } from './utils/iframeStyling'
+	let iFrameInitialized = currQueryParams.find(item => item[0] === 'url')
 	let previewFrame, previewStyles
 	let paramStyles = ''
 
-	currQueryParams.forEach(param => {
-		if (param[0].substr(0,2) === '--') {
-			paramStyles += `${ param[0] }: #${ param[1] }; `
-		}
-	})
+	$: queryStyles = currQueryParams.filter(param => param[0].startsWith('--'))
 
-	$: if (previewFrame && previewFrame.contentDocument && previewFrame.src && previewStyles) {
-		console.log('document =', previewFrame.contentDocument.documentElement.innerHTML)
-
-		previewFrame.contentDocument.documentElement.innerHTML = previewFrame.contentDocument.documentElement.innerHTML
-			.replace(/(<style id='injected'>.*<\/head>)|(<\/head>)/, `
-					<style id='injected'>
-						body { ${ previewStyles.map(style => style[0] +': '+ style[1]).join('; ') } }
-					</style>
-				</head>`)
+	let queryString = ''
+	$: if (currQueryParams && previewStyles) {
+		queryString = '?'+(`${(currQueryParams.find(param => param[0] === 'url')) ? 'url='+currQueryParams.find(param => param[0] === 'url')[1] : ''}${ (previewStyles) ? '&'+previewStyles.map(style => (encodeURIComponent(style[0])+'='+encodeURIComponent(style[1]))).join('&') : '' }`)
+		console.log('queryString = ', queryString)
 	}
 
-	onMount(async () => {
+
+	$: if (previewFrame && previewFrame.contentDocument && previewStyles) {
+		console.log('document =', previewFrame.contentDocument.documentElement.innerHTML)
+
+		const hasInjectedStyles = (previewFrame.contentDocument.documentElement.innerHTML).includes('style id="injected"')
+
+		console.log(`has injected styles = `, hasInjectedStyles )
+		if (hasInjectedStyles) {
+			console.log('replacement test = ', (previewFrame.contentDocument.documentElement.innerHTML).search(/<style id="injected">(.|\t|\r|\n)*<\/head>/))
+		}
+
+		previewFrame.contentDocument.documentElement.innerHTML = (hasInjectedStyles)
+			? (previewFrame.contentDocument.documentElement.innerHTML).replace(/<style id="injected">(.|\t|\r|\n)*<\/head>/, `<style id='injected'>
+			body { ${ previewStyles.map(style => style[0] +': '+ style[1]).join('; ') } }
+		</style>
+		</head>`)
+			: (previewFrame.contentDocument.documentElement.innerHTML).replace('</head>', `<style id='injected'>
+			body { ${ previewStyles.map(style => style[0] +': '+ style[1]).join('; ') } }
+		</style>
+		</head>`)
+
+	}
+
+	onMount(handleMount)
+
+	async function handleMount() {
+		console.log('queryStyles = ', queryStyles)
+		if (!currQueryParams.find(item => item[0] === 'url')) return
+
 		previewFrame.src = currQueryParams.find(item => item[0] === 'url')
 			? `./pages/${ currQueryParams.find(item => item[0] === 'url')[1] }`
 			: ''
@@ -34,19 +54,71 @@
 		const previewFrameLoaded = await loadIFramePromise(previewFrame).catch(err => console.error(err))
 
 		// EXTRACT BODY, :ROOT, AND * CSS VARIABLES
-		previewStyles = getIFrameCustomCSS(previewFrame)
+		previewStyles = getIFrameCustomCSS(previewFrame).map(style => {
+			if (queryStyles.find(qStyle => qStyle[0] === style[0])) {
+				style[1] = queryStyles.find(qStyle => qStyle[0] === style[0])[1]
+			}
+			return style
+		})
 		console.log('previewStyles = ', previewStyles)
 
-		// TODO: CREATE UI CONTROLS FOR EACH TOP LEVEL VARIABLE BASED ON TYPE
+		// CREATE UI CONTROLS FOR EACH TOP LEVEL VARIABLE BASED ON TYPE
 
-		// TODO: WRITE TO URL AS QUERY PARAMS WHEN EDITING ANY CSS VARIABLE VALUES
+
+		
 
 		// TODO: LOAD QUERY PARAMS AND ASSIGN TO IFRAME PAGE BY CREATING A NEW CSS FILE AND INSERTING AT END OF HEAD TAG
 
-	})
+	}
+
+	// TODO: WRITE TO URL AS QUERY PARAMS WHEN EDITING ANY CSS VARIABLE VALUES
+	function updateStyles(e, index) {
+		console.log('e & index = ', e, index)
+		const newStyles = previewStyles
+		previewStyles[index][1] = e.target.value 
+		previewStyles = newStyles
+
+		if (queryString) {
+			const url = window.origin + '/' + queryString
+
+			window.history.replaceState(null, '', url)
+		}
+	}
+
+	async function handleURLEnter(e) {
+		e.preventDefault()
+		
+		const input = e.target.querySelector('input')
+		const url = input.value
+
+		let localPageFound = await fetch('/pages/'+url)
+
+		localPageFound = localPageFound.status === 404 ? false : true
+
+		console.log('localPageFound = ', localPageFound)
+
+		if (!localPageFound) {
+			input.value = ''
+			return
+		}
+
+		const newQueryParams = [...currQueryParams]
+		newQueryParams.push(['url', url])
+
+		currQueryParams = newQueryParams
+
+		console.log('currQueryParams = ', currQueryParams)
+
+		iFrameInitialized = true
+		await tick()
+
+		window.history.replaceState(null, '', window.location.origin +'/?url='+ url)
+
+		handleMount()		
+	}
 </script>
 
-<main style={ paramStyles }>
+<main>
 	<h1>Query Param Test</h1>
 	<section>
 		<h2>URL params</h2>
@@ -63,38 +135,27 @@
 		</table>
 	</section>
 	{#if previewStyles instanceof Array}
-	<!-- <section>
-		<h2>Theme Controls Available on This Page</h2>
-		<table>
-			<tbody>
-				<tr><th>Variable</th><th>Value</th></tr>
-				{#each previewStyles as style, i}
-				<tr>
-					<td>{ style[0] }</td>
-					<td>{ style[1] }</td>
-				</tr>
-				{/each}
-			</tbody>
-		</table>
-	</section> -->
 	<section>
 		{#each previewStyles as style, j ('style-control_'+j)}
 		<label>
 			{ style[0] }
-			<input type='color' on:change={(e) => {
-				const newStyles = previewStyles
-				previewStyles[j][1] = e.target.value 
-				previewStyles = newStyles
-			}} />
+			<input type='color' on:change={ (e) => updateStyles(e, j) } />
 			{ style[1] }
 		</label>
 		{/each}
 	</section>
 	{/if}
-	{#if currQueryParams.find(item => item[0] === 'url')}
+	{#if iFrameInitialized}
 	<iframe title='page-preview' bind:this={ previewFrame } width='80%' height='600' allowfullscreen>
 		<p>Sorry, your iframe isn't loading!</p>
 	</iframe>
+	{:else}
+	<form action='' method='post' on:submit={handleURLEnter}>
+		<label>Enter a filename from within the local <code>/static/pages/</code> directory.
+			<input type='text' name='url' required />
+		</label>
+		<button type='submit'>Submit</button>
+	</form>
 	{/if}
 </main>
 
