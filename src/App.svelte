@@ -74,7 +74,10 @@
 		previewStyles = newStyles
 
 		if (queryString) {
-			const url = window.location.href + '/' + queryString
+			const url = window.location.href.slice(0, window.location.href.indexOf('?') >= 0
+				? window.location.href.indexOf('?')
+				: window.location.href.length)
+			+ queryString
 
 			window.history.replaceState(null, '', url)
 		}
