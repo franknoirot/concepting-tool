@@ -20,7 +20,7 @@ export function getIFrameCustomCSS(iFrame) {
                                             styleProp, 
                                             (rule.selectorText === 'body')
                                                 ? iFrame.contentWindow.getComputedStyle(iFrame.contentDocument.body).getPropertyValue(styleProp)
-                                                : iFrame.contentWindow.getComputedStyle(iFrame.contentDocument).getPropertyValue(styleProp)
+                                                : iFrame.contentWindow.getComputedStyle(iFrame.contentDocument.documentElement).getPropertyValue(styleProp)
                                         ]
                                     ))
                             ] : def
