@@ -23,11 +23,6 @@
 
 		const hasInjectedStyles = (previewFrame.contentDocument.documentElement.innerHTML).includes('style id="injected"')
 
-		console.log(`has injected styles = `, hasInjectedStyles )
-		if (hasInjectedStyles) {
-			console.log('replacement test = ', (previewFrame.contentDocument.documentElement.innerHTML).search(/<style id="injected">(.|\t|\r|\n)*<\/head>/))
-		}
-
 		previewFrame.contentDocument.documentElement.innerHTML = (hasInjectedStyles)
 			? (previewFrame.contentDocument.documentElement.innerHTML).replace(/<style id="injected">(.|\t|\r|\n)*<\/head>/, `<style id='injected'>
 			body { ${ previewStyles.map(style => style[0] +': '+ style[1]).join('; ') } }
@@ -79,7 +74,7 @@
 		previewStyles = newStyles
 
 		if (queryString) {
-			const url = window.origin + '/' + queryString
+			const url = window.href + '/' + queryString
 
 			window.history.replaceState(null, '', url)
 		}
@@ -112,7 +107,7 @@
 		iFrameInitialized = true
 		await tick()
 
-		window.history.replaceState(null, '', window.location.origin +'/?url='+ url)
+		window.history.replaceState(null, '', window.location.href +'?url='+ url)
 
 		handleMount()		
 	}
