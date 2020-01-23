@@ -195,7 +195,7 @@
 		box-sizing: border-box;
 		padding: 10vh 3em;
 		margin: 0;
-		background: white;
+		background: rgba(255,255,255,.9);
 		display: grid;
 		grid-template-rows: auto 1fr;
 
