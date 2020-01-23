@@ -91,7 +91,7 @@
 		const input = e.target.querySelector('input')
 		const url = input.value
 
-		let localPageFound = await fetch('/pages/'+url)
+		let localPageFound = await fetch('./pages/'+url)
 
 		localPageFound = localPageFound.status === 404 ? false : true
 
