@@ -107,10 +107,6 @@
 <main>
 	<section class={`side-bar ${ isSidebarOpen ? 'open' : '' }`}>
 		<h1>Site Theming Tool</h1>
-		<button class='side-bar_toggle'
-			on:click={() => isSidebarOpen = !isSidebarOpen}>
-			{ !isSidebarOpen ? 'Open →' : '← Close' }
-		</button>
 		{#if previewStyles instanceof Array}
 		<section class='control_group'>
 			{#each previewStyles as style, j ('style-control_'+j)}
@@ -127,6 +123,10 @@
 		</section>
 		{/if}
 	</section>
+	<button class='side-bar_toggle'
+		on:click={() => isSidebarOpen = !isSidebarOpen}>
+		{ !isSidebarOpen ? 'Open Control Panel →' : '← Close Control Panel' }
+	</button>
 
 	<!-- iFrame of other page, or selection of page to view. -->
 	{#if iFrameInitialized}
@@ -214,7 +214,8 @@
 	}
 
 
-	.side-bar.open {
+	.side-bar.open,
+	.side-bar:focus-within {
 		transform: translate(100%);
 		box-shadow: .2vw 0 .8vw rgba(0,0,0,0.2), 1vw 0 1.6vw rgba(0,0,0,.08);
 	}
@@ -231,6 +232,9 @@
 		z-index: 3;
 	}
 
+	.side-bar_toggle:focus {
+		background: #d080d3;
+	}
 
 	@media (min-width: 640px) {
 		main {
