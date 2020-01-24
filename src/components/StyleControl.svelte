@@ -4,15 +4,15 @@
 </script>
 
 <label>
-    { style[0] }
+    <span class='label'>{ style[0] }</span>
     {#if style.contains('color')}
-    <input type='color' on:change />
+    <input type='color' value={style[1]} on:change />
     {:else}
-    <input type='text' on:change />
+    <input type='text' value={style[1]} on:change />
     {/if}
-    { style[1] }
+    <span class='value'>{ style[1] }</span>
 </label>
 
 <style>
-
+    
 </style>

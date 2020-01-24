@@ -4,21 +4,18 @@
 </script>
 
 <script>
-	import { onMount, tick } from 'svelte'
+	import { onMount, tick, afterUpdate } from 'svelte'
 	import { loadIFramePromise, getIFrameCustomCSS } from './utils/iframeStyling'
 	import StyleControl from './components/StyleControl.svelte'
 
 	let iFrameInitialized = currQueryParams.find(item => item[0] === 'url')
 	let previewFrame, previewStyles
-	let paramStyles = ''
+	let isFirstCall = true
+	let paramStyles = '', originalStyles = []
 	let isSidebarOpen = true
+	let queryString = ''
 
 	$: queryStyles = currQueryParams.filter(param => param[0].startsWith('--'))
-
-	let queryString = ''
-	$: if (currQueryParams && previewStyles) {
-		queryString = '?'+(`${(currQueryParams.find(param => param[0] === 'url')) ? 'url='+currQueryParams.find(param => param[0] === 'url')[1] : ''}${ (previewStyles) ? '&'+previewStyles.map(style => (encodeURIComponent(style[0])+'='+encodeURIComponent(style[1]))).join('&') : '' }`)
-	}
 
 
 	$: if (previewFrame && previewFrame.contentDocument && previewStyles) {
@@ -55,6 +52,13 @@
 			}
 			return style
 		})
+
+		// SET ORIGINAL STYLES TO CHECK AGAINST LATER
+		if (isFirstCall) {
+			isFirstCall = false
+			originalStyles = [...previewStyles.map(style => [...style])]
+		}
+
 	}
 
 	// TODO: WRITE TO URL AS QUERY PARAMS WHEN EDITING ANY CSS VARIABLE VALUES
@@ -63,6 +67,8 @@
 		previewStyles[index][1] = e.target.value 
 		previewStyles = newStyles
 
+		buildQueryString()
+
 		if (queryString) {
 			const url = window.location.href.slice(0, window.location.href.indexOf('?') >= 0
 				? window.location.href.indexOf('?')
@@ -70,6 +76,21 @@
 			+ queryString
 
 			window.history.replaceState(null, '', url)
+		}
+	}
+
+	function buildQueryString() {
+		if (currQueryParams && previewStyles) {
+		console.log('originalStyles', originalStyles)
+		const filteredStyles = previewStyles.filter((style, i) => style[1] !== originalStyles[i][1])
+
+		queryString = '?'+(`${(currQueryParams.find(param => param[0] === 'url')) 
+			? 'url=' + currQueryParams.find(param => param[0] === 'url')[1] 
+			: ''}${ (filteredStyles) 
+			? ((filteredStyles.length > 1) 
+				? '&' + filteredStyles.map(style => (encodeURIComponent(style[0])+'='+encodeURIComponent(style[1]))).join('&')
+				: '&' + encodeURIComponent(filteredStyles[0][0]) + '=' + encodeURIComponent(filteredStyles[0][1]))
+			: '' }`)
 		}
 	}
 
@@ -110,22 +131,26 @@
 		{#if previewStyles instanceof Array}
 		<section class='control_group'>
 			{#each previewStyles as style, j ('style-control_'+j)}
-			<label>
-				{ style[0] }
+			<label class='control'>
+				<span class='label'>{ style[0].slice(2, style[0].length).replace('-', ' ') }</span>
 				<input type={
 					style[0].includes('color')
 						? 'color'
 						: 'text'
-				} on:input={e => updateStyles(e, j)} />
-				{ style[1] }
+				} value={ style[1] } 
+				on:input={e => updateStyles(e, j)} />
+				<span class='value' >{ style[1] }</span>
 			</label>
 			{/each}
 		</section>
 		{/if}
 	</section>
-	<button class='side-bar_toggle'
+	<button class={`side-bar_toggle ${ isSidebarOpen ? 'open' : '' }`}
 		on:click={() => isSidebarOpen = !isSidebarOpen}>
-		{ !isSidebarOpen ? 'Open Control Panel →' : '← Close Control Panel' }
+		<svg viewBox='0 0 10 5'>
+			<path d='M 1 2.5 l 8 0 M 7 1 l 2 1.5 l -2 1.5' />
+		</svg>
+		<span>{ !isSidebarOpen ? 'Open' : 'Close' } Tool Bar</span>
 	</button>
 
 	<!-- iFrame of other page, or selection of page to view. -->
@@ -177,6 +202,7 @@
 		text-transform: uppercase;
 		font-size: 2em;
 		font-weight: 100;
+		margin: 0 0 1em 0;
 	}
 
 	section {
@@ -193,7 +219,7 @@
 		max-width: 100%;
 		height: 100%;
 		box-sizing: border-box;
-		padding: 10vh 3em;
+		padding: 5vh 3em;
 		margin: 0;
 		background: rgba(255,255,255,.9);
 		display: grid;
@@ -208,9 +234,10 @@
 		justify-content: space-between;
 		align-items: flex-start;
 		box-sizing: border-box;
-		padding: 5vh 0;
+		padding-block-end: 10vh;
 		margin: 0;
 		justify-self: stretch;
+		overflow-y: scroll;
 	}
 
 
@@ -223,18 +250,86 @@
 	.side-bar_toggle {
 		position: fixed;
 		left: 2vw;
-		top: 5vh;
+		bottom: 3vh;
+		z-index: 3;
+		display: flex;
+		align-items: center;
+		background: none;
+		border: none;
+	}
+
+	.side-bar_toggle svg {
+		width: 2em;
+		height: 1em;
 		background: #f0a0f3;
 		border: none;
 		border-radius: 2em;
-		padding: .4em 1.5em;
+		padding: 1em;
 		box-shadow: 0 .2vh .5vh rgba(0,0,0,0.2), 0 1.1vh 1.5vh rgba(0,0,0,0.08);
-		z-index: 3;
+		transition: all .12s ease-in-out;
 	}
 
-	.side-bar_toggle:focus {
+	.side-bar_toggle path {
+		stroke: white;
+		stroke-linecap: round;
+		fill: transparent;
+		transform-origin: 50% 50%;
+		transform-style: preserve-3d;
+		transform: rotate(0deg);
+		transition: all .12s ease-in-out;
+	}
+
+	.side-bar_toggle span {
+		display: inline-block;
+		margin-inline-start: -2em;
+		transform-origin: 0 50%;
+		opacity: 0;
+		transform: rotate(15deg);
+		transition: opacity .12s ease-in-out, transform .12s .04s ease-in-out;
+		background: hsla(323deg, 68%, 74%, .9);
+		padding: .8em 3em;
+		border-radius: 2em;
+		position: relative;
+		z-index: -1;
+		color: white;
+	}
+
+	.side-bar_toggle:hover span {
+		transform: rotate(0deg);
+		opacity: 1;
+	}
+
+	.side-bar_toggle:focus svg {
 		background: #d080d3;
 	}
+
+	.side-bar_toggle.open path {
+		transform: rotateY(.5turn);
+	}
+
+	.control {
+		margin: 1em 0;
+		text-align: left;
+	}
+
+	.control:first-child {
+		margin-block-start: 0;
+	}
+	.control:last-child {
+		margin-block-end: 0;
+	}
+	
+	.control .label {
+		display: block;
+		text-align: left;
+		text-transform: uppercase;
+		color: #444;
+	}
+
+    .control .value {
+		align-self: center;
+		white-space: nowrap;
+    }
 
 	@media (min-width: 640px) {
 		main {
