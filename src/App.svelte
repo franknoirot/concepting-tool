@@ -139,7 +139,9 @@
 						: 'text'
 				} value={ style[1] } 
 				on:input={e => updateStyles(e, j)} />
+				{#if style[0].includes('color')}
 				<span class='value' >{ style[1] }</span>
+				{/if}
 			</label>
 			{/each}
 		</section>
@@ -220,6 +222,7 @@
 		height: 100%;
 		box-sizing: border-box;
 		padding: 5vh 3em;
+		padding-block-end: calc(10vh + 2em);
 		margin: 0;
 		background: rgba(255,255,255,.9);
 		display: grid;
