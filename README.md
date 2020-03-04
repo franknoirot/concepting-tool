@@ -1,93 +1,26 @@
-*Psst — looking for a shareable component template? Go here --> [sveltejs/component-template](https://github.com/sveltejs/component-template)*
+# A Concepting Tool with Svelte.js
 
----
+This project uses Svelte.js to allow the user to select a page from the local /pages/ repository and tweak its styling with a live preview and shareable URLs. Great for teams who are trying to pin down the concept of a brand or site buildout before they design too many pages.
 
-# svelte app
+## How to use it
+1. Fork the repo
+2. Host the site (I have it as a subdirectory of my Github Pages portfolio site. Netlify is easy too.)
+3. Code up a few main landing pages you want to see various styles of, with the special considerations mentioned below.
+4. Drop those files into the /pages/ directory of your repo.
+5. (For now) update the "availablePages" array at the top of the App.svelte file (I'm making this automatic soon)
+6. Re-deploy your site
+7. Use the UI to tweak your designs during a meeting, saving links to looks you like as you go!
 
-This is a project template for [Svelte](https://svelte.dev) apps. It lives at https://github.com/sveltejs/template.
+## Designing pages for the tool
+### HTML & JS
+You can use any tool to create your pages as long as the HTML file for it lands in the /pages/ directory. I haven't done this, but you could even use a framework like Vue or an SSG like Gatsby to put a whole site in there!
 
-To create a new project based on this template using [degit](https://github.com/Rich-Harris/degit):
+### CSS
+This tool is however very opinionated about how you do your CSS, which may feel odd. The tool relies on *locally-hosted, globally-scoped CSS variables*, that is CSS variables placed in local stylesheets (not hosted like UIKit or Bootstrap) at the global scope (CSS selectors must either be *, :root, or body). This is to prevent pollution and provide just the right amount of control to the tool over your page.
 
-```bash
-npx degit sveltejs/template svelte-app
-cd svelte-app
-```
+This means that if you want to see what different `border-radius` values look like on your secondary button, you'll have to make a CSS variable called something like `--secondary-btn-border-radius` within a root level CSS rule, then use that variable in your initial styling. The names may get long but it really is worth it for readability and namespacing. The tool even generates the labels for the controls from your CSS variable names! So just write some longer names so your design colleagues don't have to guess that `--bs-2` stands for your secondary box shadow style 😂.
 
-*Note that you will need to have [Node.js](https://nodejs.org) installed.*
+## More Info
+This tool was made by [Frank Noirot](http://franknoirot.co) [in 2020](https://elizabethwarren.com).
 
-
-## Get started
-
-Install the dependencies...
-
-```bash
-cd svelte-app
-npm install
-```
-
-...then start [Rollup](https://rollupjs.org):
-
-```bash
-npm run dev
-```
-
-Navigate to [localhost:5000](http://localhost:5000). You should see your app running. Edit a component file in `src`, save it, and reload the page to see your changes.
-
-By default, the server will only respond to requests from localhost. To allow connections from other computers, edit the `sirv` commands in package.json to include the option `--host 0.0.0.0`.
-
-
-## Building and running in production mode
-
-To create an optimised version of the app:
-
-```bash
-npm run build
-```
-
-You can run the newly built app with `npm run start`. This uses [sirv](https://github.com/lukeed/sirv), which is included in your package.json's `dependencies` so that the app will work when you deploy to platforms like [Heroku](https://heroku.com).
-
-
-## Single-page app mode
-
-By default, sirv will only respond to requests that match files in `public`. This is to maximise compatibility with static fileservers, allowing you to deploy your app anywhere.
-
-If you're building a single-page app (SPA) with multiple routes, sirv needs to be able to respond to requests for *any* path. You can make it so by editing the `"start"` command in package.json:
-
-```js
-"start": "sirv public --single"
-```
-
-
-## Deploying to the web
-
-### With [now](https://zeit.co/now)
-
-Install `now` if you haven't already:
-
-```bash
-npm install -g now
-```
-
-Then, from within your project folder:
-
-```bash
-cd public
-now deploy --name my-project
-```
-
-As an alternative, use the [Now desktop client](https://zeit.co/download) and simply drag the unzipped project folder to the taskbar icon.
-
-### With [surge](https://surge.sh/)
-
-Install `surge` if you haven't already:
-
-```bash
-npm install -g surge
-```
-
-Then, from within your project folder:
-
-```bash
-npm run build
-surge public my-project.surge.sh
-```
+If you want to get in touch, email him at frank@franknoirot.co or @franknoirot on insta.

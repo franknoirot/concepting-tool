@@ -1,12 +1,16 @@
 <script context='module'>
-	let availablePages = ['landing-page', 'blog-template']
-	let currQueryParams = Array.from((new URL(document.location)).searchParams.entries())
+	// scripte context='module' is Svelte-specific, tells this script to only run
+	// once for any instance of a component. Since there's only one App component
+	// I think this could live with all the other script, but I like these two
+	// tasks being separate
+	let availablePages = ['landing-page', 'blog-template'] // TODO: make this dynamically check the pages/ directory
+	let currQueryParams = Array.from((new URL(document.location)).searchParams.entries()) // Create an array from url query params
 </script>
 
 <script>
-	import { onMount, tick, afterUpdate } from 'svelte'
-	import { loadIFramePromise, getIFrameCustomCSS } from './utils/iframeStyling'
-	import StyleControl from './components/StyleControl.svelte'
+	import { onMount, tick, afterUpdate } from 'svelte' // Svelte lifecycle methods
+	import { loadIFramePromise, getIFrameCustomCSS } from './utils/iframeStyling' // Custom iFrame + CSS logic
+	import StyleControl from './components/StyleControl.svelte' // Input Component that changes type based on CSS Variable name
 
 	let iFrameInitialized = currQueryParams.find(item => item[0] === 'url')
 	let previewFrame, previewStyles
@@ -15,9 +19,13 @@
 	let isSidebarOpen = true
 	let queryString = ''
 
-	$: queryStyles = currQueryParams.filter(param => param[0].startsWith('--'))
+	// queryStyles gets updated any time currQueryParams changes
+	// "--" identifies query params that are style-related, just like in CSS
+	$: queryStyles = currQueryParams.filter(param => param[0].startsWith('--')) 
 
-
+	// "$: " syntax in Svelte make this run any time any of variables referenced within change
+	// iFrame.contentDocument check ensures this only runs after the iFrame is done loading
+	// previewStyles ensure this only runs after a change to the default styles has been made.
 	$: if (previewFrame && previewFrame.contentDocument && previewStyles) {
 		const hasInjectedStyles = (previewFrame.contentDocument.documentElement.innerHTML).includes('style id="injected"')
 
@@ -36,16 +44,17 @@
 	onMount(handleMount)
 
 	async function handleMount() {
-		if (!currQueryParams.find(item => item[0] === 'url')) return
+		if (!currQueryParams.find(item => item[0] === 'url')) return // if there's no "url" query param don't run
 
+		// set iFrame src to local page within "pages" directory plus url query param value
 		previewFrame.src = currQueryParams.find(item => item[0] === 'url')
 			? `./pages/${ currQueryParams.find(item => item[0] === 'url')[1] }`
 			: ''
 
-		// WAIT FOR IFRAME TO LOAD
+		// wait for iFrame to load
 		const previewFrameLoaded = await loadIFramePromise(previewFrame).catch(err => console.error(err))
 
-		// EXTRACT BODY, :ROOT, AND * CSS VARIABLES
+		// extract body, :root, and * css rules from the iFrame page and fill a previewStyles array with them
 		previewStyles = getIFrameCustomCSS(previewFrame).map(style => {
 			if (queryStyles.find(qStyle => qStyle[0] === style[0])) {
 				style[1] = queryStyles.find(qStyle => qStyle[0] === style[0])[1]
@@ -53,7 +62,7 @@
 			return style
 		})
 
-		// SET ORIGINAL STYLES TO CHECK AGAINST LATER
+		// set originalStyles on first run to check against later
 		if (isFirstCall) {
 			isFirstCall = false
 			originalStyles = [...previewStyles.map(style => [...style])]
@@ -61,40 +70,49 @@
 
 	}
 
-	// TODO: WRITE TO URL AS QUERY PARAMS WHEN EDITING ANY CSS VARIABLE VALUES
 	function updateStyles(e, index) {
+		// Svelte's variable invalidation is clunky with arrays and objects.
+		// Need to copy array, change the value you want, then overwrite the original array
 		const newStyles = previewStyles
 		previewStyles[index][1] = e.target.value 
-		previewStyles = newStyles
+		previewStyles = newStyles 
 
-		buildQueryString()
+		buildQueryString() // Line 86
 
+		// don't refresh window if nothing changed
 		if (queryString) {
+			// replace existing query string in url or append to url if none exists
 			const url = window.location.href.slice(0, window.location.href.indexOf('?') >= 0
 				? window.location.href.indexOf('?')
 				: window.location.href.length)
 			+ queryString
 
+			// update browser history 
+			// TODO: make this less incessant; you can have a lot of browser history pretty quickly
 			window.history.replaceState(null, '', url)
 		}
 	}
 
 	function buildQueryString() {
+		// only run if there are query params and styles to check
 		if (currQueryParams && previewStyles) {
-		console.log('originalStyles', originalStyles)
+
+		// extract only the styles that have been changed from their original values
 		const filteredStyles = previewStyles.filter((style, i) => style[1] !== originalStyles[i][1])
 
+		// build query string from page name as "url" param + any style rules that changed
 		queryString = '?'+(`${(currQueryParams.find(param => param[0] === 'url')) 
 			? 'url=' + currQueryParams.find(param => param[0] === 'url')[1] 
 			: ''}${ (filteredStyles) 
 			? ((filteredStyles.length > 1) 
 				? '&' + filteredStyles.map(style => (encodeURIComponent(style[0])+'='+encodeURIComponent(style[1]))).join('&')
-				: '&' + encodeURIComponent(filteredStyles[0][0]) + '=' + encodeURIComponent(filteredStyles[0][1]))
+				: '&' + encodeURIComponent(filteredStyles[0][0]) + '=' + encodeURIComponent(filteredStyles[0][1])) // did this wonky single case because I didn't want it to have an "&" after it
 			: '' }`)
 		}
 	}
 
 	async function handleURLEnter(e) {
+		// called on input from page-picker form
 		e.preventDefault()
 		
 		const input = e.target.querySelector('select')
@@ -104,33 +122,34 @@
 
 		localPageFound = localPageFound.status === 404 ? false : true
 
-		console.log('localPageFound = ', localPageFound)
-
 		if (!localPageFound) {
 			input.value = ''
 			return
 		}
 
+		// updating currQueryParams array the clunky Svelte way
 		const newQueryParams = [...currQueryParams]
 		newQueryParams.push(['url', url])
-
 		currQueryParams = newQueryParams
 
 		iFrameInitialized = true
-		await tick()
+		await tick() // tick lets Svelte pause while all the iFrame-loading-related code above runs
 
 		window.history.replaceState(null, '', window.location.href +'?url='+ url)
 
-		handleMount()		
+		// safe to call handleMount now since we know we've waited for the iFrame to initiliaze and load it's src
+		handleMount()
 	}
 </script>
 
 <main>
+	<!-- Sidebar, populated with controls if viewing an iFrame -->
 	<section class={`side-bar ${ isSidebarOpen ? 'open' : '' }`}>
 		<h1>Site Theming Tool</h1>
 		{#if previewStyles instanceof Array}
 		<section class='control_group'>
 			{#each previewStyles as style, j ('style-control_'+j)}
+<<<<<<< HEAD
 			<label class='control'>
 				<span class='label'>{ style[0].slice(2, style[0].length).replace('-', ' ') }</span>
 				<input type={
@@ -143,6 +162,9 @@
 				<span class='value' >{ style[1] }</span>
 				{/if}
 			</label>
+=======
+			<StyleControl style={style} on:input={e => updateStyles(e, j)} />
+>>>>>>> 635a3a0219fa2fba53f6886fd733a6c2b079acad
 			{/each}
 		</section>
 		{/if}
@@ -222,7 +244,11 @@
 		height: 100%;
 		box-sizing: border-box;
 		padding: 5vh 3em;
+<<<<<<< HEAD
 		padding-block-end: calc(10vh + 2em);
+=======
+		padding-block-end: 15vh;
+>>>>>>> 635a3a0219fa2fba53f6886fd733a6c2b079acad
 		margin: 0;
 		background: rgba(255,255,255,.9);
 		display: grid;
@@ -309,30 +335,6 @@
 	.side-bar_toggle.open path {
 		transform: rotateY(.5turn);
 	}
-
-	.control {
-		margin: 1em 0;
-		text-align: left;
-	}
-
-	.control:first-child {
-		margin-block-start: 0;
-	}
-	.control:last-child {
-		margin-block-end: 0;
-	}
-	
-	.control .label {
-		display: block;
-		text-align: left;
-		text-transform: uppercase;
-		color: #444;
-	}
-
-    .control .value {
-		align-self: center;
-		white-space: nowrap;
-    }
 
 	@media (min-width: 640px) {
 		main {
