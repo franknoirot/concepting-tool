@@ -14,9 +14,9 @@ function getConfig() {
         "isLocal": true,
         "isPublic": true,
         "path": "/concepting-tool",
-        "themeColor": "hsl(310deg, 60%, 65%)",
-        "tools": "Svelte.js, WebMIDI API",
-        "image": '/img/2020-08-28-web_midi.jpg'
+        "themeColor": "hsl(220deg, 70%, 70%)",
+        "tools": "Svelte.js",
+        "image": '/img/concepting-tool.jpg'
     }
 }
 
