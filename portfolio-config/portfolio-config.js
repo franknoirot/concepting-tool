@@ -20,7 +20,7 @@ function getConfig() {
     }
 }
 
-fs.writeFile('portfolio-config.json', JSON.stringify(getConfig(),null,2), err => {
+fs.writeFile('portfolio-config/portfolio-config.json', JSON.stringify(getConfig(),null,2), err => {
     if (err) console.error(err)
     else console.log('Portfolio file written successfully')
 })
